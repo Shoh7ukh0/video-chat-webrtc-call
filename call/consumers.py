@@ -15,14 +15,14 @@ class CallConsumer(WebsocketConsumer):
         else:
             ActiveUser.objects.get_or_create(username=f"{self.scope['url_route']['kwargs']['username']}")
         # response to client, that we are connected.
-        active_admins = ActiveUser.objects.filter(is_admin=True).values_list('username', flat=True)
-        # active_admins = ActiveUser.objects.all().values_list('username', flat=True)
+        # active_admins = ActiveUser.objects.filter(is_admin=True).values_list('username', flat=True)
+        active_admins = ActiveUser.objects.all().values_list('username', flat=True)
         self.send(text_data=json.dumps({
             'type': 'connection',
             'data': {
                 'message': "Connected",
-                # 'active_admins': list(active_admins),
-                'active_admins': [] if self.scope['url_route']['kwargs'].get('is_admin', False) else list(active_admins),
+                'active_admins': list(active_admins),
+                # 'active_admins': [] if self.scope['url_route']['kwargs'].get('is_admin', False) else list(active_admins),
             }
         }))
 

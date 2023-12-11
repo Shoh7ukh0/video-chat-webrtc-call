@@ -4,6 +4,7 @@ const baseURL = "/"
 
 let localVideo = document.querySelector('#localVideo');
 let remoteVideo = document.querySelector('#remoteVideo');
+let remoteVideo1 = document.querySelector('#remoteVideo1');
 
 let otherUser;
 let remoteRTCMessage;
@@ -384,6 +385,11 @@ function handleRemoteStreamAdded(event) {
     console.log('Remote stream added.');
     remoteStream = event.stream;
     remoteVideo.srcObject = remoteStream;
+    if (!remoteVideo.srcObject) {
+        remoteVideo.srcObject = event.stream;
+    } else if (!remoteVideo1.srcObject) {
+        remoteVideo1.srcObject = event.stream;
+    }
 }
 
 function handleRemoteStreamRemoved(event) {
