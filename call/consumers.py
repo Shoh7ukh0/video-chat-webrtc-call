@@ -3,15 +3,26 @@ import json
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 
+from accounts.models import ActiveUser
+
+
 class CallConsumer(WebsocketConsumer):
     def connect(self):
         self.accept()
-
+        if self.scope['url_route']['kwargs'].get('is_admin', False):
+            ActiveUser.objects.get_or_create(username=f"{self.scope['url_route']['kwargs']['username']}", is_admin=True)
+            self.notify_other_users_disconnected()
+        else:
+            ActiveUser.objects.get_or_create(username=f"{self.scope['url_route']['kwargs']['username']}")
         # response to client, that we are connected.
+        active_admins = ActiveUser.objects.filter(is_admin=True).values_list('username', flat=True)
+        # active_admins = ActiveUser.objects.all().values_list('username', flat=True)
         self.send(text_data=json.dumps({
             'type': 'connection',
             'data': {
-                'message': "Connected"
+                'message': "Connected",
+                # 'active_admins': list(active_admins),
+                'active_admins': [] if self.scope['url_route']['kwargs'].get('is_admin', False) else list(active_admins),
             }
         }))
 
@@ -21,7 +32,10 @@ class CallConsumer(WebsocketConsumer):
             self.my_name,
             self.channel_name
         )
-
+        ActiveUser.objects.filter(username=self.my_name).delete()
+        self.notify_other_users_disconnected()
+        
+        
     # Receive message from client WebSocket
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -90,6 +104,36 @@ class CallConsumer(WebsocketConsumer):
                     }
                 }
             )
+            
+        if eventType == 'admin_connected':
+            users = ActiveUser.objects.all()
+            active_admins = users.filter(is_admin=True).values_list('username', flat=True)
+            active_users = users.filter(is_admin=False).values_list('username', flat=True)
+            for user in active_users:
+                async_to_sync(self.channel_layer.group_send)(
+                    user,
+                    {
+                        'type': 'admin_connected',
+                        'data': {
+                            'active_admins': list(active_admins)
+                        }
+                    }
+                )
+        if eventType == 'admin_disconnected':
+            users = ActiveUser.objects.all()
+            active_admins = users.filter(is_admin=True).values_list('username', flat=True)
+            active_users = users.filter(is_admin=False).values_list('username', flat=True)
+            for user in active_users:
+                async_to_sync(self.channel_layer.group_send)(
+                    user,
+                    {
+                        'type': 'admin_disconnected',
+                        'data': {
+                            'active_admins': list(active_admins)
+                        }
+                    }
+                )
+                
 
     def call_received(self, event):
 
@@ -116,3 +160,46 @@ class CallConsumer(WebsocketConsumer):
             'type': 'ICEcandidate',
             'data': event['data']
         }))
+        
+    def admin_connected(self, event):
+        self.send(text_data=json.dumps({
+            'type': 'admin_connected',
+            'data': event['data']
+        }))
+        
+    def admin_disconnected(self, event):
+        self.send(text_data=json.dumps({
+            'type': 'admin_disconnected',
+            'data': event['data']
+        }))
+    
+    
+    def notify_other_users_connected(self):
+        users = ActiveUser.objects.all()
+        active_admins = users.filter(is_admin=True).values_list('username', flat=True)
+        active_users = users.filter(is_admin=False).values_list('username', flat=True)
+        for user in active_users:
+            async_to_sync(self.channel_layer.send)(
+                user,
+                {
+                    'type': 'admin_connected',
+                    'data': {
+                        'active_admins': list(active_admins)
+                    }
+                }
+            )
+
+    def notify_other_users_disconnected(self):
+        users = ActiveUser.objects.all()
+        active_admins = users.filter(is_admin=True).values_list('username', flat=True)
+        active_users = users.filter(is_admin=False).values_list('username', flat=True)
+        for user in active_users:
+            async_to_sync(self.channel_layer.group_send)(
+                user,
+                {
+                    'type': 'admin_disconnected',
+                    'data': {
+                        'active_admins': list(active_admins)
+                    }
+                }
+            )
