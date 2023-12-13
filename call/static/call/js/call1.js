@@ -3,8 +3,8 @@
 const baseURL = "/"
 
 let localVideo = document.querySelector('#localVideo');
-let remoteVideo = document.querySelector('#remoteVideo');
-let remoteVideo1 = document.querySelector('#remoteVideo1');
+// let remoteVideo = document.querySelector('#remoteVideo');
+// let remoteVideo1 = document.querySelector('#remoteVideo1');
 
 let otherUser;
 let remoteRTCMessage;
@@ -15,6 +15,8 @@ let remoteStream;
 let localStream;
 
 let callInProgress = false;
+
+let remoteVideos = {};
 
 //event from html
 let nimadir = []
@@ -171,7 +173,7 @@ function connectSocket() {
 
         // document.getElementById("profileImageA").src = baseURL + callerProfile.image;
         document.getElementById("callerName").innerHTML = otherUser;
-        document.getElementById("call").style.display = "none";
+        document.getElementById("call").style.display = "block";
         document.getElementById("answer").style.display = "block";
     }
 
@@ -227,7 +229,7 @@ function sendCall(data) {
         data
     }));
 
-    document.getElementById("call").style.display = "none";
+    document.getElementById("call").style.display = "block";
     // document.getElementById("profileImageCA").src = baseURL + otherUserProfile.image;
     document.getElementById("otherUserNameCA").innerHTML = otherUser;
     document.getElementById("calling").style.display = "block";
@@ -381,16 +383,73 @@ function handleIceCandidate(event) {
     }
 }
 
+// function handleRemoteStreamAdded(event) {
+//     console.log('Remote stream added.');
+//     remoteStream = event.stream;
+//     remoteVideo.srcObject = remoteStream;
+//     if (!remoteVideo.srcObject) {
+//         remoteVideo.srcObject = event.stream;
+//     } else if (!remoteVideo1.srcObject) {
+//         remoteVideo1.srcObject = event.stream;
+//     }
+// }
+
+// 2 chi urinish
+// function handleRemoteStreamAdded(event) {
+//     console.log('Remote stream added.');
+//     if (remoteVideos[event.stream.id]) {
+//         // If the remote video already exists, update the stream
+//         remoteVideos[event.stream.id].srcObject = event.stream;
+//     } else {
+//         // If the remote video doesn't exist, create a new video element
+//         const newVideo = document.createElement('video');
+//         newVideo.style.width = '500px';
+//         newVideo.autoplay = true;
+//         newVideo.playsinline = true;
+//         newVideo.id = 'remoteVideo' + event.stream.id;  // Assign a unique ID
+//         newVideo.srcObject = event.stream;
+//         document.getElementById('remoteVideoDiv').appendChild(newVideo);
+//         remoteVideos[event.stream.id] = newVideo;
+//     }
+// }
+
+
 function handleRemoteStreamAdded(event) {
     console.log('Remote stream added.');
-    remoteStream = event.stream;
-    remoteVideo.srcObject = remoteStream;
-    if (!remoteVideo.srcObject) {
-        remoteVideo.srcObject = event.stream;
-    } else if (!remoteVideo1.srcObject) {
-        remoteVideo1.srcObject = event.stream;
+    
+    // Create a new video element for each remote stream
+    const newVideo = document.createElement('video');
+    newVideo.style.width = '250px';  // Adjust the width as needed
+    newVideo.autoplay = true;
+    newVideo.playsinline = true;
+    newVideo.id = 'remoteVideo' + event.stream.id;  // Assign a unique ID
+    newVideo.srcObject = event.stream;
+
+    // Add the new video element to the grid
+    document.getElementById('remoteVideoGrid').appendChild(newVideo);
+    remoteVideos[event.stream.id] = newVideo;
+
+    // Update the grid layout based on the number of remote videos
+    updateGridLayout();
+}
+
+function updateGridLayout() {
+    const gridContainer = document.getElementById('remoteVideoGrid');
+    const videoCount = Object.keys(remoteVideos).length;
+
+    // Calculate the number of columns based on the number of videos
+    const columns = Math.ceil(Math.sqrt(videoCount));
+
+    // Update the grid layout
+    gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+    // Update the width of each video element
+    const videoWidth = 100 / columns;
+    for (const id in remoteVideos) {
+        remoteVideos[id].style.width = `${videoWidth}%`;
     }
 }
+
 
 function handleRemoteStreamRemoved(event) {
     console.log('Remote stream removed. Event: ', event);

@@ -60,6 +60,7 @@ class CallConsumer(WebsocketConsumer):
             print(self.my_name, "is calling", name);
             # print(text_data_json)
 
+            
 
             # to notify the callee we sent an event to the group name
             # and their's groun name is the name
@@ -79,8 +80,10 @@ class CallConsumer(WebsocketConsumer):
             # we can notify to the group with the caller name
             
             caller = text_data_json['data']['caller']
+            caller_room = self.scope['url_route']['kwargs']['username']
             # print(self.my_name, "is answering", caller, "calls.")
-
+            async_to_sync(self.channel_layer.group_add)(caller_room, caller)
+            
             async_to_sync(self.channel_layer.group_send)(
                 caller,
                 {
