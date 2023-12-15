@@ -43,8 +43,6 @@ class CallConsumer(WebsocketConsumer):
     # Receive message from client WebSocket
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        # print(text_data_json)
-
         eventType = text_data_json['type']
 
         if eventType == 'login':
@@ -62,12 +60,7 @@ class CallConsumer(WebsocketConsumer):
         if eventType == 'call':
             name = text_data_json['data']['name']
             print(self.my_name, "is calling", name);
-            # print(text_data_json)
-
-            
-
-            # to notify the callee we sent an event to the group name
-            # and their's groun name is the name
+ 
             async_to_sync(self.channel_layer.group_send)(
                 name,
                 {
@@ -81,12 +74,7 @@ class CallConsumer(WebsocketConsumer):
         if eventType == 'extra_call':
             name = text_data_json['data']['name']
             print(self.my_name, "is calling", name);
-            # print(text_data_json)
-
-            
-
-            # to notify the callee we sent an event to the group name
-            # and their's groun name is the name
+ 
             async_to_sync(self.channel_layer.group_send)(
                 name,
                 {
@@ -114,7 +102,6 @@ class CallConsumer(WebsocketConsumer):
                     }
                 }
             )
-            # print('Before conditions - Second user:', self.second_user, 'Third user:', self.third_user)
             if CallConsumer.groups_info.get(caller, False) and not CallConsumer.groups_info[caller].get('third_user', False):
                 CallConsumer.groups_info[caller]['third_user'] = {'username': caller_room, 'rtcMessage': text_data_json['data']['rtcMessage']}
                 s_user_username = CallConsumer.groups_info[caller]['second_user']['username']
@@ -200,8 +187,6 @@ class CallConsumer(WebsocketConsumer):
                 
 
     def call_received(self, event):
-
-        # print(event)
         print('Call received by ', self.my_name )
         self.send(text_data=json.dumps({
             'type': 'call_received',
@@ -209,8 +194,6 @@ class CallConsumer(WebsocketConsumer):
         }))
         
     def extra_call_received(self, event):
-
-        # print(event)
         print('Call received by ', self.my_name )
         self.send(text_data=json.dumps({
             'type': 'extra_call_received',
@@ -218,7 +201,6 @@ class CallConsumer(WebsocketConsumer):
         }))
         
     def new_call(self, event):
-
         print('Call received by ', self.my_name )
         self.send(text_data=json.dumps({
             'type': 'new_call',
@@ -227,8 +209,6 @@ class CallConsumer(WebsocketConsumer):
 
 
     def call_answered(self, event):
-
-        # print(event)
         print(self.my_name, "'s call answered")
         self.send(text_data=json.dumps({
             'type': 'call_answered',
@@ -289,23 +269,3 @@ class CallConsumer(WebsocketConsumer):
                 }
             )
             
-    @database_sync_to_async
-    def get_group_users(self, group_name):
-        channel_layer = get_channel_layer()
-
-        # Get the group's channel layer group name
-        group_channel_name = f"group_{group_name}"
-
-        # Get the list of users in the group
-        users = channel_layer.group_channels(group_channel_name)
-
-        # Extract usernames from channel names
-        user_list = [channel_name.split("_")[-1] for channel_name in users]
-
-        return user_list
-    
-    def some_method(self, group):
-        # Now you can call the asynchronous method in a synchronous manner
-        users = self.get_group_users("your_group_name")
-
-        print(users)

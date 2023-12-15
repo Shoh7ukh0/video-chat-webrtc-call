@@ -3,8 +3,7 @@
 const baseURL = "/"
 
 let localVideo = document.querySelector('#localVideo');
-// let remoteVideo = document.querySelector('#remoteVideo');
-// let remoteVideo1 = document.querySelector('#remoteVideo1');
+
 
 let otherUser;
 let remoteRTCMessage;
@@ -126,15 +125,15 @@ function connectSocket() {
         }
 
         if(type == 'call_received') {
-            // console.log(response);
+           
             onNewCall(response.data)
         }
         if(type == 'extra_call_received') {
-            // console.log(response);
+           
             onExtraNewCall(response.data)
         }
         if(type == 'new_call') {
-            // console.log(response);
+           
             beReady()
                 .then(bool => {
                     processExtraCall(response.data.to_user)
@@ -458,10 +457,8 @@ function createPeerConnection() {
 }
 
 function handleIceCandidate(event) {
-    // console.log('icecandidate event: ', event);
     if (event.candidate) {
         console.log("Local ICE candidate");
-        // console.log(event.candidate.candidate);
 
         sendICEcandidate({
             user: otherUser,
@@ -476,36 +473,6 @@ function handleIceCandidate(event) {
         console.log('End of candidates.');
     }
 }
-
-// function handleRemoteStreamAdded(event) {
-//     console.log('Remote stream added.');
-//     remoteStream = event.stream;
-//     remoteVideo.srcObject = remoteStream;
-//     if (!remoteVideo.srcObject) {
-//         remoteVideo.srcObject = event.stream;
-//     } else if (!remoteVideo1.srcObject) {
-//         remoteVideo1.srcObject = event.stream;
-//     }
-// }
-
-// 2 chi urinish
-// function handleRemoteStreamAdded(event) {
-//     console.log('Remote stream added.');
-//     if (remoteVideos[event.stream.id]) {
-//         // If the remote video already exists, update the stream
-//         remoteVideos[event.stream.id].srcObject = event.stream;
-//     } else {
-//         // If the remote video doesn't exist, create a new video element
-//         const newVideo = document.createElement('video');
-//         newVideo.style.width = '500px';
-//         newVideo.autoplay = true;
-//         newVideo.playsinline = true;
-//         newVideo.id = 'remoteVideo' + event.stream.id;  // Assign a unique ID
-//         newVideo.srcObject = event.stream;
-//         document.getElementById('remoteVideoDiv').appendChild(newVideo);
-//         remoteVideos[event.stream.id] = newVideo;
-//     }
-// }
 
 
 function handleRemoteStreamAdded(event) {

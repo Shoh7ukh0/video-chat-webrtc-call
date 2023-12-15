@@ -49,19 +49,7 @@
 
             <!-- to make a call with name -->
             <div id="call">
-                {% comment %} <div class="dialWrapper">
-                    <input placeholder="Whom to call?" style="text-align:center; height: 50px; font-size: xx-large;"
-                        type="text" name="callName" id="callName">
-                    <div class="dialNumpadHWrapper">
-                        <div class="dialNumber">
-                        </div>
-                        <div class="dialNumber">
-                            <button class="dialActionButton" onclick="call()">Call</button>
-                        </div>
-                        <div class="dialNumber">
-                        </div>
-                    </div>
-                </div> {% endcomment %}
+               
             </div>
 
             <!-- to show incommming call and accept -->
@@ -116,15 +104,6 @@
                 <div style="position:absolute; top:0; right:0; padding-right: 20px; padding-top: 20px">
                     <video width="100px" id="localVideo" autoplay muted playsinline></video>
                 </div>
-                {% comment %} <div id="remoteVideoDiv">
-                    <video style="width: 500px;" id="remoteVideo" autoplay playsinline></video>
-                    <video style="width: 500px;" id="remoteVideo1" autoplay playsinline></video>
-                </div> {% endcomment %}
-
-                {% comment %} 2 chi urinish {% endcomment %}
-                {% comment %} <div id="remoteVideoDiv">
-                    <!-- Remote video elements will be dynamically added here -->
-                </div> {% endcomment %}
                 <div id="remoteVideoGrid"></div>
             </div>
             <div style="flex-grow: 1;">
@@ -138,28 +117,11 @@
     </div>
     <div style="flex-grow: 1;">
     </div>
-    <div>
-        {% comment %} <div style="display: flex; flex-direction: column; align-items: center;">
-            <a href="https://www.youtube.com/watch?v=N7lbtbmqLvM">
-                Video Call in Django with WebRTC and Django Channels (Video Guide)
-            </a>
-            <a href="https://www.bloggernepal.com/2021/10/video-call-in-django-with-webrtc-and-channels.html">
-                Video Call in Django with WebRTC and Channels (Article)
-            </a>
-            <a href="https://www.bloggernepal.com/2021/05/setup-stun-and-turn-server-on-ubuntu.html">
-                Setup STUN and TURN server on Ubuntu
-            </a>
-            <a href="https://github.com/InfoDevkota/WebRTC-Django-Django-Channels-Video-Call">
-                Github Repository
-            </a>
-        </div> {% endcomment %}
-    </div>
 
 
     <script src="{% static 'call/js/call1.js' %}"></script>
     <script>
         document.getElementById("call").style.display = "none";
-        {% comment %} document.getElementById("userInfo").style.display = "none"; {% endcomment %}
         document.getElementById("answer").style.display = "none";
         document.getElementById("inCall").style.display = "none";
         document.getElementById("calling").style.display = "none";
@@ -168,11 +130,6 @@
     </script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script>
-        function login() {
-            
-            connectSocket();
-            
-        }
         let userName = "{{request.user.username}}";
         
         let admin = "{% if request.user.is_superuser %}admin{% else %}user{% endif %}"
