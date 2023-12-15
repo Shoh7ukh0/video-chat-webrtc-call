@@ -21,7 +21,7 @@ let remoteVideos = {};
 //event from html
 let nimadir = []
 function call(inde) {
-    alert(inde)
+
     otherUser = nimadir[inde];
 
     beReady()
@@ -129,10 +129,27 @@ function connectSocket() {
             // console.log(response);
             onNewCall(response.data)
         }
-
+        if(type == 'extra_call_received') {
+            // console.log(response);
+            onExtraNewCall(response.data)
+        }
+        if(type == 'new_call') {
+            // console.log(response);
+            beReady()
+                .then(bool => {
+                    processExtraCall(response.data.to_user)
+                })
+                }
         if(type == 'call_answered') {
             onCallAnswered(response.data);
         }
+
+        if(type == 'new_user') {
+            alert('keldi');
+        }
+        // if(type == 'extra_answer_call') {
+        //     onCallAnswered(response.data);
+        // }
 
         if(type == 'ICEcandidate') {
             onICECandidate(response.data);
@@ -175,6 +192,18 @@ function connectSocket() {
         document.getElementById("callerName").innerHTML = otherUser;
         document.getElementById("call").style.display = "block";
         document.getElementById("answer").style.display = "block";
+    }
+    const onExtraNewCall = (data) =>{
+        //when other called you
+        //show answer button
+
+        otherUser = data.caller;
+        remoteRTCMessage = data.rtcMessage
+
+        beReady()
+            .then(bool => {
+                extraprocessAccept();
+            })
     }
 
     const onCallAnswered = (data) =>{
@@ -253,6 +282,15 @@ function answerCall(data) {
     callProgress();
 }
 
+function extraanswerCall(data) {
+    //to answer a call
+    // socket.emit("answerCall", data);
+    callSocket.send(JSON.stringify({
+        type: 'answer_call',
+        data
+    }));
+    callProgress();
+}
 /**
  * 
  * @param {Object} data 
@@ -290,6 +328,21 @@ function createConnectionAndAddStream() {
     createPeerConnection();
     peerConnection.addStream(localStream);
     return true;
+}
+
+function processExtraCall(userName) {
+    peerConnection.createOffer((sessionDescription) => {
+        peerConnection.setLocalDescription(sessionDescription);
+        callSocket.send(JSON.stringify({
+            type: 'extra_call',
+            data: {
+                name: userName,
+                rtcMessage: sessionDescription
+            }
+        }));
+    }, (error) => {
+        console.log("Error");
+    });
 }
 
 function processCall(userName) {
@@ -336,6 +389,47 @@ function processAccept() {
         }
 
         answerCall({
+            caller: otherUser,
+            rtcMessage: sessionDescription
+        })
+
+    }, (error) => {
+        console.log("Error");
+    })
+}
+
+function extraprocessAccept() {
+
+    peerConnection.setRemoteDescription(new RTCSessionDescription(remoteRTCMessage));
+    peerConnection.createAnswer((sessionDescription) => {
+        peerConnection.setLocalDescription(sessionDescription);
+
+        if (iceCandidatesFromCaller.length > 0) {
+            //I am having issues with call not being processed in real world (internet, not local)
+            //so I will push iceCandidates I received after the call arrived, push it and, once we accept
+            //add it as ice candidate
+            //if the offer rtc message contains all thes ICE candidates we can ingore this.
+            for (let i = 0; i < iceCandidatesFromCaller.length; i++) {
+                //
+                let candidate = iceCandidatesFromCaller[i];
+                console.log("ICE candidate Added From queue");
+                try {
+                    peerConnection.addIceCandidate(candidate).then(done => {
+                        console.log(done);
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+            iceCandidatesFromCaller = [];
+            console.log("ICE candidate queue cleared");
+        } else {
+            console.log("NO Ice candidate in queue");
+        }
+
+        extraanswerCall({
             caller: otherUser,
             rtcMessage: sessionDescription
         })

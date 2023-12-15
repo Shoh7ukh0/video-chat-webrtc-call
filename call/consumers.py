@@ -2,11 +2,15 @@
 import json
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
+from channels.layers import get_channel_layer
+from channels.db import database_sync_to_async
+
 
 from accounts.models import ActiveUser
 
 
 class CallConsumer(WebsocketConsumer):
+    groups_info = {}
     def connect(self):
         self.accept()
         if self.scope['url_route']['kwargs'].get('is_admin', False):
@@ -74,16 +78,33 @@ class CallConsumer(WebsocketConsumer):
                     }
                 }
             )
+        if eventType == 'extra_call':
+            name = text_data_json['data']['name']
+            print(self.my_name, "is calling", name);
+            # print(text_data_json)
+
+            
+
+            # to notify the callee we sent an event to the group name
+            # and their's groun name is the name
+            async_to_sync(self.channel_layer.group_send)(
+                name,
+                {
+                    'type': 'extra_call_received',
+                    'data': {
+                        'caller': self.my_name,
+                        'rtcMessage': text_data_json['data']['rtcMessage']
+                    }
+                }
+            )
 
         if eventType == 'answer_call':
-            # has received call from someone now notify the calling user
-            # we can notify to the group with the caller name
-            
             caller = text_data_json['data']['caller']
             caller_room = self.scope['url_route']['kwargs']['username']
-            # print(self.my_name, "is answering", caller, "calls.")
-            async_to_sync(self.channel_layer.group_add)(caller_room, caller)
-            
+
+            async_to_sync(self.channel_layer.group_add)(caller_room, self.channel_name)
+            async_to_sync(self.channel_layer.group_add)(caller, caller_room)
+
             async_to_sync(self.channel_layer.group_send)(
                 caller,
                 {
@@ -93,7 +114,47 @@ class CallConsumer(WebsocketConsumer):
                     }
                 }
             )
+            # print('Before conditions - Second user:', self.second_user, 'Third user:', self.third_user)
+            if CallConsumer.groups_info.get(caller, False) and not CallConsumer.groups_info[caller].get('third_user', False):
+                CallConsumer.groups_info[caller]['third_user'] = {'username': caller_room, 'rtcMessage': text_data_json['data']['rtcMessage']}
+                s_user_username = CallConsumer.groups_info[caller]['second_user']['username']
+                s_user_rtc = CallConsumer.groups_info[caller]['second_user']['rtcMessage']
 
+                async_to_sync(self.channel_layer.group_add)(caller_room, s_user_username)
+                async_to_sync(self.channel_layer.group_add)(s_user_username, caller_room)
+
+                async_to_sync(self.channel_layer.group_send)(
+                    s_user_username,
+                    {
+                        'type': 'new_call',
+                        'data': {
+                            'to_user': caller_room
+                        }
+                    }
+                )
+                print('Third user worked')
+            elif not self.groups_info.get(caller, False):
+                CallConsumer.groups_info[caller] = {}
+                CallConsumer.groups_info[caller]['second_user'] = {'username': caller_room, 'rtcMessage': text_data_json['data']['rtcMessage']}
+                
+        
+        if eventType == 'extra_answer_call':
+            caller = text_data_json['data']['caller']
+            caller_room = self.scope['url_route']['kwargs']['username']
+
+            async_to_sync(self.channel_layer.group_add)(caller_room, self.channel_name)
+            async_to_sync(self.channel_layer.group_add)(caller, caller_room)
+
+            async_to_sync(self.channel_layer.group_send)(
+                caller,
+                {
+                    'type': 'extracall_answered',
+                    'data': {
+                        'rtcMessage': text_data_json['data']['rtcMessage']
+                    }
+                }
+            )
+            
         if eventType == 'ICEcandidate':
 
             user = text_data_json['data']['user']
@@ -146,6 +207,23 @@ class CallConsumer(WebsocketConsumer):
             'type': 'call_received',
             'data': event['data']
         }))
+        
+    def extra_call_received(self, event):
+
+        # print(event)
+        print('Call received by ', self.my_name )
+        self.send(text_data=json.dumps({
+            'type': 'extra_call_received',
+            'data': event['data']
+        }))
+        
+    def new_call(self, event):
+
+        print('Call received by ', self.my_name )
+        self.send(text_data=json.dumps({
+            'type': 'new_call',
+            'data': event['data']
+        }))
 
 
     def call_answered(self, event):
@@ -156,7 +234,11 @@ class CallConsumer(WebsocketConsumer):
             'type': 'call_answered',
             'data': event['data']
         }))
-
+    def extracall_answered(self, event):
+        self.send(text_data=json.dumps({
+            'type': 'call_answered',
+            'data': event['data']
+        }))
 
     def ICEcandidate(self, event):
         self.send(text_data=json.dumps({
@@ -206,3 +288,24 @@ class CallConsumer(WebsocketConsumer):
                     }
                 }
             )
+            
+    @database_sync_to_async
+    def get_group_users(self, group_name):
+        channel_layer = get_channel_layer()
+
+        # Get the group's channel layer group name
+        group_channel_name = f"group_{group_name}"
+
+        # Get the list of users in the group
+        users = channel_layer.group_channels(group_channel_name)
+
+        # Extract usernames from channel names
+        user_list = [channel_name.split("_")[-1] for channel_name in users]
+
+        return user_list
+    
+    def some_method(self, group):
+        # Now you can call the asynchronous method in a synchronous manner
+        users = self.get_group_users("your_group_name")
+
+        print(users)
